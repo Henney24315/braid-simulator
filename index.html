@@ -1,352 +1,673 @@
-
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Noto+Sans+KR:wght@300;400;500&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{background:#13100c;color:#e8dcc8;font-family:'Noto Sans KR',sans-serif;width:100%}
-.app{display:flex;flex-direction:column}
-.topbar{padding:11px 18px 9px;border-bottom:1px solid rgba(180,140,80,.15);display:flex;align-items:baseline;gap:10px}
-.ttl{font-family:'Noto Serif KR',serif;font-size:15px;color:#d4a84b;letter-spacing:.05em}
-.sub{font-size:10px;color:rgba(212,168,75,.4);letter-spacing:.08em}
-.body{display:flex;gap:0}
-.left{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;gap:8px}
-canvas#braid{border-radius:6px;cursor:grab}
-canvas#braid:active{cursor:grabbing}
-.hint{font-size:9px;color:rgba(212,168,75,.28);letter-spacing:.1em}
-.right{width:256px;border-left:1px solid rgba(180,140,80,.1);display:flex;flex-direction:column}
-.picker-area{padding:14px 14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
-.lbl{font-size:9px;letter-spacing:.16em;color:rgba(212,168,75,.45);text-transform:uppercase;align-self:flex-start}
-.ring-wrap{position:relative;width:210px;height:210px}
-canvas#ring{position:absolute;top:0;left:0;cursor:default}
-#colorProxy{position:fixed;opacity:0;pointer-events:none;top:0;left:0;width:0;height:0}
-.sliders{padding:10px 14px;border-top:1px solid rgba(180,140,80,.1);display:flex;flex-direction:column;gap:9px}
-.sr{display:flex;flex-direction:column;gap:4px}
-.srow{display:flex;justify-content:space-between;font-size:11px;color:rgba(232,220,200,.6)}
-.sv{color:#d4a84b}
-input[type=range]{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;background:rgba(180,140,80,.2);outline:none;cursor:pointer}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#d4a84b;cursor:pointer}
-.rbtn{margin:8px 14px 12px;padding:8px;background:transparent;border:1px solid rgba(180,140,80,.18);border-radius:4px;color:rgba(212,168,75,.55);font-size:11px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;letter-spacing:.04em;width:calc(100% - 28px)}
-.rbtn:hover{border-color:rgba(212,168,75,.5);color:#d4a84b}
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding&family=Orbit&family=ZCOOL+QingKe+HuangYou&display=swap');
+
+  /* ── 테마 변수 ─────────────────────────────────────────────────
+     여기서만 수정하면 전체 UI 색상이 바뀝니다.
+     --primary     : 메인 강조색 (solid)
+     --primary-rgb : 강조색 R,G,B (rgba() 투명도 조합용)
+     --bd-rgb      : 테두리·트랙 전용 RGB (조금 더 차분한 톤)
+     --bg          : 캔버스·앱 배경색
+     --core-rgb    : 코어 실린더 재질색 (조명 계산에 사용)
+  ─────────────────────────────────────────────────────────────── */
+  :root {
+    --primary: #6495ed;
+    --primary-rgb: 100, 149, 237;
+    --bd-rgb: 255, 255, 255;
+    --bg: #ffffff;
+    --core-rgb: 230, 205, 165;
+    /* 코어 실린더 나무색 */
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    font-family: "Orbit", monospace;
+    width: 100%;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    padding: 11px 18px 9px;
+    border-bottom: 1px solid rgba(var(--primary-rgb), 0.15);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .ttl {
+    font-size: 15px;
+    color: var(--primary);
+    letter-spacing: 0.05em;
+  }
+
+  .sub {
+    font-size: 10px;
+    color: rgba(var(--primary-rgb), 0.4);
+    letter-spacing: 0.08em;
+  }
+
+  .body {
+    display: flex;
+  }
+
+  .left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    gap: 8px;
+  }
+
+  canvas#braid {
+    border-radius: 6px;
+    cursor: grab;
+  }
+
+  canvas#braid:active {
+    cursor: grabbing;
+  }
+
+  .hint {
+    font-size: 9px;
+    color: var(--primary);
+    letter-spacing: 0.1em;
+  }
+
+  .right {
+    width: 256px;
+    border-left: 1px solid rgba(var(--primary-rgb), 0.1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .picker-area {
+    padding: 14px 14px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .lbl {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--primary);
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 210px;
+    height: 210px;
+  }
+
+  canvas#ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: default;
+  }
+
+  #colorProxy {
+    position: fixed;
+    opacity: 0;
+    pointer-events: none;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: 0;
+  }
+
+  .sliders {
+    padding: 10px 14px;
+    border-top: 1px solid rgba(var(--primary-rgb), 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .sr {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .srow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--primary);
+  }
+
+  .sv {
+    color: var(--primary);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(var(--primary-rgb), 0.2);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+  }
+
+  .rbtn {
+    margin: 8px 14px 12px;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid rgba(var(--primary-rgb), 0.18);
+    border-radius: 4px;
+    color: var(--primary);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    width: calc(100% - 28px);
+  }
+
+  .rbtn:hover {
+    border-color: rgba(var(--primary-rgb), 0.5);
+    color: var(--primary);
+  }
+
+  .copyright {
+    border-top: 1px solid rgba(var(--primary-rgb), 0.15);
+    text-align: center;
+    padding: 10px 0 12px;
+    font-size: 10px;
+    color: var(--primary);
+    letter-spacing: 0.1em;
+    white-space: pre-wrap;
+  }
 </style>
 
 <div class="app">
-<div class="topbar">
-  <span class="ttl">8사 뜨기 시뮬레이터</span>
-  <span class="sub">R1·L1·R2·L2·R3·L3·R4·L4 — 실 위치에서 색상 변경</span>
-</div>
-<div class="body">
-  <div class="left">
-    <canvas id="braid" width="420" height="440"></canvas>
-    <div class="hint">드래그 회전 &nbsp;·&nbsp; 휠 확대축소</div>
+  <div class="topbar">
+    <span class="ttl">8사 뜨기 시뮬레이터</span>
   </div>
-  <div class="right">
-    <div class="picker-area">
-      <div class="lbl">가닥 배치 (클릭 → 색상 변경)</div>
-      <div class="ring-wrap"><canvas id="ring" width="210" height="210"></canvas></div>
-      <div style="font-size:9px;color:rgba(212,168,75,.3)">배색할 때: 오른쪽으로 시작</div>
+  <div class="body">
+    <div class="left">
+      <canvas id="braid" width="420" height="420"></canvas>
+      <div class="hint">드래그 회전 &nbsp;·&nbsp; 휠 확대축소</div>
     </div>
-    <div class="sliders">
-      <div class="sr">
-        <div class="srow"><span>꼬임 밀도</span><span class="sv" id="tvl">중간</span></div>
-        <input type="range" id="tw" min="3" max="22" value="10" oninput="onTw(this.value)">
+    <div class="right">
+      <div class="picker-area">
+        <div class="lbl">가닥 배치 (클릭 → 색상 변경)</div>
+        <div class="ring-wrap">
+          <canvas id="ring" width="210" height="210"></canvas>
+        </div>
       </div>
-      <div class="sr">
-        <div class="srow"><span>실 굵기</span><span class="sv" id="thvl">1.0×</span></div>
-        <input type="range" id="th" min="4" max="22" value="10" oninput="onTh(this.value)">
+      <div class="sliders">
+        <div class="sr">
+          <div class="srow">
+            <span>꼬임 밀도</span>
+            <span class="sv" id="twistDVal">2.0</span>
+          </div>
+          <input type="range" id="twistDSlider" min="0.5" max="6" step="0.1" value="2" />
+        </div>
+        <div class="sr">
+          <div class="srow">
+            <span>가닥 두께</span>
+            <span class="sv" id="thicknessVal">8</span>
+          </div>
+          <input type="range" id="thicknessSlider" min="1" max="20" step="1" value="8" />
+        </div>
       </div>
+      <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
     </div>
-    <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
   </div>
 </div>
+<div class="copyright">
+  Copyright © @HENNEY24315. All rights reserved.
+  Unauthorized copying, modification, and distribution of this source code are strictly prohibited.
+  이 소스 코드의 무단 전재, 수정 및 재배포를 금지합니다.
 </div>
-<input type="color" id="colorProxy">
+<input type="color" id="colorProxy" />
 
 <script>
-const SLOTS = [
-  { id:0, name:'L',  label:'L(나)', angleDeg:  0, color:'#a78bfa' },
-  { id:1, name:'R3', label:'R3',    angleDeg: 45, color:'#86efac' },
-  { id:2, name:'L4', label:'L4',    angleDeg: 90, color:'#fde68a' },
-  { id:3, name:'R2', label:'R2',    angleDeg:135, color:'#fdba74' },
-  { id:4, name:'R1', label:'R1',    angleDeg:180, color:'#f9a8d4' },
-  { id:5, name:'L3', label:'L3',    angleDeg:225, color:'#86efac' },
-  { id:6, name:'4R', label:'4R',    angleDeg:270, color:'#fde68a' },
-  { id:7, name:'2L', label:'2L',    angleDeg:315, color:'#fdba74' },
-];
-const PAIRS = [[0,4],[3,7],[1,5],[2,6]];
-const leftIds  = [0,2,5,7];
+  // ── CSS 테마 변수 → JS 상수 ──────────────────────────────────────
+  // CSS :root 의 --primary-rgb, --core-rgb 등을 읽어 JS 전체에서 재사용
+  const _cs = getComputedStyle( document.documentElement );
+  const _primRgb = _cs.getPropertyValue( "--primary-rgb" ).trim();
+  const _coreRgb = _cs.getPropertyValue( "--core-rgb" ).trim();
+  const _bg = _cs.getPropertyValue( "--bg" ).trim();
 
-let colors = SLOTS.map(s=>s.color);
-let twistD=10, thickness=1.0;
-let rotX=0.28, rotY=0.55, zoom=1;
-let dragging=false, lx=0, ly=0, hovered=-1;
+  /** rgba(--primary-rgb, alpha) */
+  const acRgba = ( a ) => `rgba(${_primRgb},${a})`;
+  /** --core-rgb 배열 [r,g,b] (코어 실린더 조명용) */
+  const coreArr = _coreRgb.split( "," ).map( Number );
 
-// ── Ring canvas ─────────────────────────────────────
-const rc=document.getElementById('ring');
-const rctx=rc.getContext('2d');
-const RW=rc.width,RH=rc.height,RCX=RW/2,RCY=RH/2;
-const RING_R=78,DOT_R=15;
+  // ── 배색 설정 (여기서만 수정) ────────────────────────────────────
+  // 나 기준 왼쪽: L1~L4 / 오른쪽: R1~R4 (총 8가닥)
+  // 각 가닥은 독립된 나선으로 원기둥을 한 바퀴 감으며 내려감
+  const COLORS = {
+    L4: "#888888",
+    L3: "#FF1C7A",
+    L2: "#ffffff",
+    L1: "#1CFF55",
+    R1: "#F7FF1C",
+    R2: "#1C7BFF",
+    R3: "#FFAA52",
+    R4: "#FF52F6",
+  };
 
-function slotXY(i){
-  const a=(SLOTS[i].angleDeg-90)*Math.PI/180;
-  return{x:RCX+RING_R*Math.cos(a),y:RCY+RING_R*Math.sin(a)};
-}
-function isDark(hex){
-  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-  return(r*299+g*587+b*114)/1000<128;
-}
-function drawRing(){
-  rctx.clearRect(0,0,RW,RH);
-  rctx.beginPath();
-  rctx.arc(RCX,RCY,RING_R,0,Math.PI*2);
-  rctx.strokeStyle='rgba(180,140,80,.1)';
-  rctx.lineWidth=1;rctx.setLineDash([2,5]);rctx.stroke();rctx.setLineDash([]);
-  PAIRS.forEach((pair,pi)=>{
-    const a=slotXY(pair[0]),b=slotXY(pair[1]);
-    const axCol=['rgba(163,139,250,0.18)','rgba(249,115,22,0.18)','rgba(34,197,94,0.18)','rgba(234,179,8,0.18)'][pi];
-    rctx.beginPath();rctx.moveTo(a.x,a.y);rctx.lineTo(b.x,b.y);
-    rctx.strokeStyle=axCol;rctx.lineWidth=1.5;rctx.stroke();
-  });
-  rctx.font='500 12px "Noto Serif KR"';rctx.fillStyle='rgba(212,168,75,0.2)';
-  rctx.textAlign='center';rctx.textBaseline='middle';rctx.fillText('8사',RCX,RCY-6);
-  rctx.font='400 9px "Noto Sans KR"';rctx.fillStyle='rgba(212,168,75,0.15)';rctx.fillText('뜨기',RCX,RCY+7);
-  SLOTS.forEach((slot,i)=>{
-    const p=slotXY(i),isHov=(i===hovered),col=colors[i];
-    if(isHov){rctx.beginPath();rctx.arc(p.x,p.y,DOT_R+6,0,Math.PI*2);rctx.fillStyle=col+'25';rctx.fill();}
-    rctx.beginPath();rctx.arc(p.x,p.y,DOT_R+2,0,Math.PI*2);rctx.fillStyle='rgba(0,0,0,.4)';rctx.fill();
-    rctx.beginPath();rctx.arc(p.x,p.y,DOT_R,0,Math.PI*2);rctx.fillStyle=col;rctx.fill();
-    rctx.beginPath();rctx.arc(p.x,p.y,DOT_R,0,Math.PI*2);
-    rctx.strokeStyle=isHov?'rgba(255,255,255,.8)':'rgba(255,255,255,.18)';rctx.lineWidth=isHov?2:1;rctx.stroke();
-    rctx.font=`${isHov?'600':'500'} 9px "Noto Sans KR"`;
-    rctx.fillStyle=isDark(col)?'rgba(255,255,255,.9)':'rgba(0,0,0,.75)';
-    rctx.textAlign='center';rctx.textBaseline='middle';rctx.fillText(slot.label,p.x,p.y);
-  });
-}
-function hitDot(ex,ey){
-  const rect=rc.getBoundingClientRect();
-  const mx=(ex-rect.left)*(RW/rect.width),my=(ey-rect.top)*(RH/rect.height);
-  for(let i=0;i<SLOTS.length;i++){const p=slotXY(i);if((mx-p.x)**2+(my-p.y)**2<=(DOT_R+5)**2)return i;}
-  return -1;
-}
-rc.addEventListener('mousemove',e=>{const h=hitDot(e.clientX,e.clientY);if(h!==hovered){hovered=h;drawRing();}rc.style.cursor=h>=0?'pointer':'default';});
-rc.addEventListener('mouseleave',()=>{hovered=-1;drawRing();rc.style.cursor='default';});
-const proxy=document.getElementById('colorProxy');
-rc.addEventListener('click',e=>{
-  const h=hitDot(e.clientX,e.clientY);if(h<0)return;
-  proxy.value=colors[h];
-  proxy.onchange=function(){colors[h]=this.value;drawRing();drawBraid();};
-  proxy.click();
-});
+  // ── 가닥 배치 ────────────────────────────────────────────────────
+  // placeDeg : 링 캔버스에서의 시각적 위치 (나=270°, 12시=0°)
+  // angleDeg : 3D 브레이드 원기둥 위의 시작 각도 (Y축 기준)
+  const SLOTS = [
+    { id: 0, label: "L4", angleDeg: 180, placeDeg: 22.5, color: COLORS.L4 },
+    { id: 1, label: "L3", angleDeg: 270, placeDeg: 292.5, color: COLORS.L3 },
+    { id: 2, label: "L2", angleDeg: 0, placeDeg: 202.5, color: COLORS.L2 },
+    { id: 3, label: "L1", angleDeg: 90, placeDeg: 112.5, color: COLORS.L1 },
+    { id: 4, label: "R1", angleDeg: 45, placeDeg: 67.5, color: COLORS.R1 },
+    { id: 5, label: "R2", angleDeg: 135, placeDeg: 337.5, color: COLORS.R2 },
+    { id: 6, label: "R3", angleDeg: 225, placeDeg: 247.5, color: COLORS.R3 },
+    { id: 7, label: "R4", angleDeg: 315, placeDeg: 157.5, color: COLORS.R4 },
+  ];
 
-// ── 3D Braid canvas ─────────────────────────────────
-const bc=document.getElementById('braid');
-const bctx=bc.getContext('2d');
-const BW=bc.width,BH=bc.height,BCX=BW/2,BCY=BH/2;
+  // L 가닥(id 0-3): twSign=+1, 반시계 나선
+  // R 가닥(id 4-7): twSign=-1, 시계 나선
+  const LEFT_IDS = new Set( [ 0, 1, 2, 3 ] );
 
-function proj(x,y,z){
-  const x1=x*Math.cos(rotY)-z*Math.sin(rotY);
-  const z1=x*Math.sin(rotY)+z*Math.cos(rotY);
-  const y2=y*Math.cos(rotX)-z1*Math.sin(rotX);
-  const z2=y*Math.sin(rotX)+z1*Math.cos(rotX);
-  const fov=720,sc=zoom*112;
-  const s=fov/(fov+z2+230);
-  return{sx:BCX+x1*s*sc,sy:BCY+y2*s*sc,d:z2};
-}
-function h2rgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+  // ── 전역 상태 ───────────────────────────────────────────────────
+  let colors = SLOTS.map( ( s ) => s.color );
+  let twistD = 2;
+  let thickness = 8;
+  let rotX = 0;
+  let rotY = 0;
+  let zoom = 1;
+  let dragging = false;
+  let lx = 0,
+    ly = 0;
+  let hovered = -1;
 
-// 원통 표면을 세로 스트립으로 나눠서 채우기
-// 각 스트립의 앞/뒤를 판별해 앞면만 흰색으로 그림
-function drawCylinderFill(R, L){
-  const YSTEPS = 80;  // 세로 분할
-  const ASTEPS = 60;  // 원 둘레 분할
+  // ── Ring 캔버스 ─────────────────────────────────────────────────
+  const rc = document.getElementById( "ring" );
+  const rctx = rc.getContext( "2d" );
+  const RW = rc.width,
+    RH = rc.height,
+    RCX = RW / 2,
+    RCY = RH / 2;
+  const RING_R = 78,
+    DOT_R = 15;
 
-  // 원통 표면 quad들을 수집해서 depth sort
-  const quads = [];
-  for(let ai=0; ai<ASTEPS; ai++){
-    const a0 = (ai/ASTEPS)*Math.PI*2;
-    const a1 = ((ai+1)/ASTEPS)*Math.PI*2;
-    for(let yi=0; yi<YSTEPS; yi++){
-      const y0 = (yi/YSTEPS - 0.5)*L;
-      const y1 = ((yi+1)/YSTEPS - 0.5)*L;
-      const p00=proj(R*Math.cos(a0),y0,R*Math.sin(a0));
-      const p10=proj(R*Math.cos(a1),y0,R*Math.sin(a1));
-      const p11=proj(R*Math.cos(a1),y1,R*Math.sin(a1));
-      const p01=proj(R*Math.cos(a0),y1,R*Math.sin(a0));
-      const avgD=(p00.d+p10.d+p11.d+p01.d)/4;
-
-      // 법선벡터의 z성분으로 앞면/뒷면 판별
-      // 앞면이면(z>0 방향이 카메라를 향하면) 흰색 fill
-      const midAng=(a0+a1)/2;
-      // 회전된 법선
-      const nx=Math.cos(midAng), nz=Math.sin(midAng);
-      const nx2=nx*Math.cos(rotY)+nz*Math.sin(rotY); // rotY 적용
-      // rotX 적용 후 z성분
-      const nzFinal= -nx*Math.sin(rotY)*Math.sin(rotX)+nz*Math.cos(rotX);
-      const isFront = nzFinal < 0; // 카메라 쪽을 향하면 앞면
-
-      quads.push({p00,p10,p11,p01,avgD,isFront});
-    }
+  function slotXY( i ) {
+    const a = ( SLOTS[ i ].placeDeg * Math.PI ) / 180;
+    return { x: RCX + RING_R * Math.cos( a ), y: RCY + RING_R * Math.sin( a ) };
   }
-  quads.sort((a,b)=>a.avgD-b.avgD);
 
-  quads.forEach(({p00,p10,p11,p01,isFront})=>{
-    bctx.beginPath();
-    bctx.moveTo(p00.sx,p00.sy);
-    bctx.lineTo(p10.sx,p10.sy);
-    bctx.lineTo(p11.sx,p11.sy);
-    bctx.lineTo(p01.sx,p01.sy);
-    bctx.closePath();
-    if(isFront){
-      // 앞면: 흰색 (약간 warm white)
-      bctx.fillStyle='rgba(252,250,245,1)';
-    } else {
-      // 뒷면: 어두운 색 (안보이게)
-      bctx.fillStyle='rgba(20,16,12,1)';
+  function isDark( hex ) {
+    const r = parseInt( hex.slice( 1, 3 ), 16 );
+    const g = parseInt( hex.slice( 3, 5 ), 16 );
+    const b = parseInt( hex.slice( 5, 7 ), 16 );
+    return ( r * 299 + g * 587 + b * 114 ) / 1000 < 128;
+  }
+
+  function drawRing() {
+    rctx.clearRect( 0, 0, RW, RH );
+
+    // 배경 가이드 원
+    rctx.beginPath();
+    rctx.arc( RCX, RCY, RING_R, 0, Math.PI * 2 );
+    rctx.strokeStyle = acRgba( 1 );
+    rctx.lineWidth = 1;
+    rctx.setLineDash( [ 2, 5 ] );
+    rctx.stroke();
+    rctx.setLineDash( [] );
+
+    // "나" 기준점 (링 하단 외부 고정 마커)
+    const mx = RCX,
+      my = RCY + RING_R + 8;
+    rctx.beginPath();
+    rctx.moveTo( mx, my - 7 );
+    rctx.lineTo( mx - 5, my );
+    rctx.lineTo( mx + 5, my );
+    rctx.closePath();
+    rctx.fillStyle = acRgba( 0.55 );
+    rctx.fill();
+    rctx.fillStyle = acRgba( 0.65 );
+    rctx.textAlign = "center";
+    rctx.textBaseline = "top";
+    rctx.fillText( "나", mx, my );
+
+    // 슬롯 도트
+    SLOTS.forEach( ( slot, i ) => {
+      const p = slotXY( i );
+      const col = colors[ i ];
+      const hov = i === hovered;
+
+
+      rctx.beginPath();
+      rctx.moveTo( RCX, RCY );
+      rctx.lineTo( p.x, p.y );
+      rctx.strokeStyle = acRgba( 1 );
+      rctx.lineWidth = 1;
+      rctx.stroke();
+      rctx.closePath();
+
+      if ( hov ) {
+        rctx.beginPath();
+        rctx.arc( p.x, p.y, DOT_R + 6, 0, Math.PI * 2 );
+        rctx.fillStyle = col + "25";
+        rctx.fill();
+      }
+
+      rctx.beginPath();
+      rctx.arc( p.x, p.y, DOT_R + 1, 0, Math.PI * 2 );
+      rctx.fillStyle = "rgba(0,0,0,0.5)";
+      rctx.fill();
+
+      rctx.beginPath();
+      rctx.arc( p.x, p.y, DOT_R, 0, Math.PI * 2 );
+      rctx.fillStyle = col;
+      rctx.fill();
+
+      rctx.beginPath();
+      rctx.arc( p.x, p.y, DOT_R, 0, Math.PI * 2 );
+      rctx.strokeStyle = hov
+        ? "rgba(255,255,255,0.8)"
+        : "rgba(255,255,255,0.18)";
+      rctx.lineWidth = hov ? 2 : 1;
+      rctx.stroke();
+
+      rctx.fillStyle = isDark( col ) ? "rgba(255,255,255,1)" : "rgba(0,0,0,0.75)";
+      rctx.textAlign = "center";
+      rctx.textBaseline = "middle";
+      rctx.fillText( slot.label, p.x, p.y );
+
+    } );
+  }
+
+  function hitDot( ex, ey ) {
+    const rect = rc.getBoundingClientRect();
+    const mx = ( ex - rect.left ) * ( RW / rect.width );
+    const my = ( ey - rect.top ) * ( RH / rect.height );
+    for ( let i = 0; i < SLOTS.length; i++ ) {
+      const p = slotXY( i );
+      if ( ( mx - p.x ) ** 2 + ( my - p.y ) ** 2 <= ( DOT_R + 5 ) ** 2 ) return i;
     }
-    bctx.fill();
-    // 앞면에만 아주 미세한 테두리 (원통감)
-    if(isFront){
-      bctx.strokeStyle='rgba(220,210,195,0.15)';
-      bctx.lineWidth=0.3;
+    return -1;
+  }
+
+  rc.addEventListener( "mousemove", ( e ) => {
+    const h = hitDot( e.clientX, e.clientY );
+    if ( h !== hovered ) {
+      hovered = h;
+      drawRing();
+    }
+    rc.style.cursor = h >= 0 ? "pointer" : "default";
+  } );
+  rc.addEventListener( "mouseleave", () => {
+    hovered = -1;
+    drawRing();
+    rc.style.cursor = "default";
+  } );
+
+  const proxy = document.getElementById( "colorProxy" );
+  rc.addEventListener( "click", ( e ) => {
+    const h = hitDot( e.clientX, e.clientY );
+    if ( h < 0 ) return;
+    proxy.value = colors[ h ];
+    proxy.onchange = function() {
+      colors[ h ] = this.value;
+      drawRing();
+      drawBraid();
+    };
+    proxy.click();
+  } );
+
+  // ── Braid 3D 캔버스 ─────────────────────────────────────────────
+  const bc = document.getElementById( "braid" );
+  const bctx = bc.getContext( "2d" );
+  const BW = bc.width,
+    BH = bc.height,
+    BCX = BW / 2,
+    BCY = BH / 2;
+
+  // 원근 투영: rotY(Y축) → rotX(X축) 회전 후 Z축 원근 적용, d(깊이)=큰값이 카메라에서 멀어짐
+  function proj( x, y, z ) {
+    const x1 = x * Math.cos( rotY ) - z * Math.sin( rotY );
+    const z1 = x * Math.sin( rotY ) + z * Math.cos( rotY );
+    const y2 = y * Math.cos( rotX ) - z1 * Math.sin( rotX );
+    const z2 = y * Math.sin( rotX ) + z1 * Math.cos( rotX );
+    const s = 720 / ( 720 + z2 + 230 );
+    const sc = zoom * 112;
+    return { sx: BCX + x1 * s * sc, sy: BCY + y2 * s * sc, d: z2 };
+  }
+
+  function hexToRgb( hex ) {
+    return [
+      parseInt( hex.slice( 1, 3 ), 16 ),
+      parseInt( hex.slice( 3, 5 ), 16 ),
+      parseInt( hex.slice( 5, 7 ), 16 ),
+    ];
+  }
+
+  // 불투명 코어 원기둥 (뒷면 실을 가리는 역할)
+  function drawCoreCylinder( R, L ) {
+    const ASTEPS = 48,
+      YSTEPS = 60;
+    const quads = [];
+
+    for ( let ai = 0; ai < ASTEPS; ai++ ) {
+      const a0 = ( ai / ASTEPS ) * Math.PI * 2;
+      const a1 = ( ( ai + 1 ) / ASTEPS ) * Math.PI * 2;
+      const mid = ( a0 + a1 ) / 2;
+
+      // 법선 → 카메라 방향 dot: 뒷면 컬링
+      const nx = Math.cos( mid ),
+        nz = Math.sin( mid );
+      const nzFinal =
+        -nx * Math.sin( rotY ) * Math.sin( rotX ) + nz * Math.cos( rotX );
+      if ( nzFinal >= 0 ) continue;
+
+      const diffuse = Math.max( 0, -nzFinal );
+      for ( let yi = 0; yi < YSTEPS; yi++ ) {
+        const y0 = ( yi / YSTEPS - 0.5 ) * L;
+        const y1 = ( ( yi + 1 ) / YSTEPS - 0.5 ) * L;
+        const p00 = proj( R * Math.cos( a0 ), y0, R * Math.sin( a0 ) );
+        const p10 = proj( R * Math.cos( a1 ), y0, R * Math.sin( a1 ) );
+        const p11 = proj( R * Math.cos( a1 ), y1, R * Math.sin( a1 ) );
+        const p01 = proj( R * Math.cos( a0 ), y1, R * Math.sin( a0 ) );
+        quads.push( {
+          p00,
+          p10,
+          p11,
+          p01,
+          d: ( p00.d + p10.d + p11.d + p01.d ) / 4,
+          diffuse,
+        } );
+      }
+    }
+    quads.sort( ( a, b ) => b.d - a.d );
+
+    quads.forEach( ( { p00, p10, p11, p01, diffuse } ) => {
+      bctx.beginPath();
+      bctx.moveTo( p00.sx, p00.sy );
+      bctx.lineTo( p10.sx, p10.sy );
+      bctx.lineTo( p11.sx, p11.sy );
+      bctx.lineTo( p01.sx, p01.sy );
+      bctx.closePath();
+      const v = 0.45 + diffuse * 0.65;
+      bctx.fillStyle = `rgb(${Math.round( coreArr[ 0 ] * v )},${Math.round( coreArr[ 1 ] * v )},${Math.round( coreArr[ 2 ] * v )})`;
+      bctx.fill();
+    } );
+
+  }
+
+  function drawBraid() {
+    bctx.clearRect( 0, 0, BW, BH );
+    bctx.fillStyle = _bg || "#ffffff";
+    bctx.fillRect( 0, 0, BW, BH );
+
+    const R = 0.5,
+      L = 3.0,
+      SEGS = 180;
+    const allSegs = [];
+
+    SLOTS.forEach( ( slot, si ) => {
+      const isLeft = LEFT_IDS.has( si );
+      const baseAng = ( ( slot.angleDeg - 90 ) * Math.PI ) / 180;
+      const rgb = hexToRgb( colors[ si ] );
+      const twSign = isLeft ? 1 : -1;
+
+      for ( let s = 0; s < SEGS; s++ ) {
+        const t0 = s / SEGS,
+          t1 = ( s + 1 ) / SEGS;
+        const tw0 = t0 * Math.PI * twistD;
+        const tw1 = t1 * Math.PI * twistD;
+
+        // over/under 판별
+        // R-L 교차점은 tw = π/8, 3π/8, 5π/8, 7π/8(홀수×π/8)에서 발생
+        // -twSign·sin(4·tw) 는 각 교차점에서 교번으로 ±1 → R과 L 모두 번갈아 위/아래
+        const ov0 = -twSign * Math.sin( 4 * tw0 );
+        const ov1 = -twSign * Math.sin( 4 * tw1 );
+
+        // 나선 반경: over=약간 바깥, under=약간 안쪽 (깊이 정렬 보조)
+        const r0 = R * ( 1 + ov0 * 0.05 );
+        const r1 = R * ( 1 + ov1 * 0.05 );
+        const a0 = baseAng + tw0 * twSign;
+        const a1 = baseAng + tw1 * twSign;
+
+        const p0 = proj( r0 * Math.cos( a0 ), ( t0 - 0.5 ) * L, r0 * Math.sin( a0 ) );
+        const p1 = proj( r1 * Math.cos( a1 ), ( t1 - 0.5 ) * L, r1 * Math.sin( a1 ) );
+        const avgD = ( p0.d + p1.d ) / 2;
+
+        const depthSh = Math.max( 0.65, Math.min( 1.15, ( avgD + 270 ) / 420 ) );
+        const isOver = ov0 > 0;
+        // 위 가닥: 밝고 굵음 / 아래 가닥: 어둡고 가늘어서 교차점이 명확
+        const overSh = isOver ? 1.3 : 0.55;
+        const alpha = isOver ? 1.0 : 0.72;
+        const lw = isOver ? thickness * 5 : thickness * 2;
+
+        allSegs.push( {
+          p0,
+          p1,
+          fr: Math.min( 255, Math.round( rgb[ 0 ] * depthSh * overSh ) ),
+          fg: Math.min( 255, Math.round( rgb[ 1 ] * depthSh * overSh ) ),
+          fb: Math.min( 255, Math.round( rgb[ 2 ] * depthSh * overSh ) ),
+          alpha,
+          lw,
+          d: avgD,
+        } );
+      }
+    } );
+
+    // painter's algorithm: 먼 것(큰 d)부터 그려야 가까운 것이 위에 표시됨
+    allSegs.sort( ( a, b ) => b.d - a.d );
+    // 코어 실린더(d≈0)를 기준으로 뒷면 세그먼트를 먼저, 앞면 세그먼트를 나중에 그려 올바른 occlusion 구현
+    const backSegs = allSegs.filter( ( s ) => s.d > 0 );
+    const frontSegs = allSegs.filter( ( s ) => s.d <= 0 );
+
+    function drawSeg( { p0, p1, fr, fg, fb, alpha, lw } ) {
+      bctx.beginPath();
+      bctx.moveTo( p0.sx, p0.sy );
+      bctx.lineTo( p1.sx, p1.sy );
+      bctx.strokeStyle = `rgba(${fr},${fg},${fb},${alpha})`;
+      bctx.lineWidth = lw;
+      bctx.lineCap = "round";
       bctx.stroke();
     }
-  });
-}
 
-function drawBraid(){
-  bctx.clearRect(0,0,BW,BH);
-  bctx.fillStyle='#13100c';
-  bctx.fillRect(0,0,BW,BH);
-
-  const R=0.50,L=3.0,SEGS=240;
-
-  // 원통 내부 채우기 (실보다 먼저 → 뒤쪽 실이 가려짐)
-  drawCylinderFill(R*0.97, L);
-
-  // 실 세그먼트 생성
-  const allSegs=[];
-  SLOTS.forEach((slot,si)=>{
-    const isLeft=leftIds.includes(si);
-    const baseAng=(slot.angleDeg-90)*Math.PI/180;
-    const rgb=h2rgb(colors[si]);
-    const twistSign=isLeft?1:-1;
-    const phase=baseAng;
-
-    for(let s=0;s<SEGS;s++){
-      const t0=s/SEGS,t1=(s+1)/SEGS;
-      const tw0=t0*Math.PI*2*twistD*0.5;
-      const tw1=t1*Math.PI*2*twistD*0.5;
-      const over0=Math.sin(tw0*2*twistSign+phase*2);
-      const over1=Math.sin(tw1*2*twistSign+phase*2);
-      const r0=R*(1+over0*0.20);
-      const r1=R*(1+over1*0.20);
-      const ang0=baseAng+tw0*twistSign;
-      const ang1=baseAng+tw1*twistSign;
-
-      const p0=proj(r0*Math.cos(ang0),(t0-.5)*L,r0*Math.sin(ang0));
-      const p1=proj(r1*Math.cos(ang1),(t1-.5)*L,r1*Math.sin(ang1));
-      const avgD=(p0.d+p1.d)/2;
-
-      // 원통 뒷면에 있는 실은 건너뜀 (내부 흰통이 가려야 하므로)
-      // depth > 0 이면 카메라 반대쪽(뒷면) → 그리지 않음
-      // 단, over0 > 0 (원통 바깥으로 튀어나온 부분)은 항상 그림
-      const isOutside = over0 > -0.1;
-
-      // 앞쪽 절반(depth가 낮음=카메라 가까움)이거나 바깥으로 튀어나온 실만 그림
-      const depthSh=Math.max(0.35,Math.min(1,(avgD+270)/550));
-      const overSh=over0>0?1.0:0.55;
-      const alpha=over0>0?0.97:0.78;
-      const fr=Math.min(255,Math.round(rgb[0]*depthSh*overSh));
-      const fg=Math.min(255,Math.round(rgb[1]*depthSh*overSh));
-      const fb=Math.min(255,Math.round(rgb[2]*depthSh*overSh));
-      const lw=Math.max(1.2,thickness*3.2*(1+Math.abs(over0)*0.1));
-
-      allSegs.push({p0,p1,fr,fg,fb,alpha,d:avgD,lw,isOutside});
-    }
-  });
-
-  // depth sort — 뒤→앞 순으로 그리되, 원통 fill이 중간 레이어 역할
-  // 전략: 
-  //   1) 뒷면 실 (d > 0) → 원통 fill 전에 그림 (가려짐)
-  //   2) 원통 fill
-  //   3) 앞면 실 (d <= 0) → fill 위에 그림 (보임)
-
-  const backSegs = allSegs.filter(s=>s.d>0);
-  const frontSegs = allSegs.filter(s=>s.d<=0);
-
-  // 뒷면 실 먼저 (가려질 것들 — 사실상 안그려도 되지만 혹시 몰라서)
-  // → 원통 fill이 이미 덮으므로 skip
-
-  // 앞면 실만 그리기 (원통 fill 위에)
-  frontSegs.sort((a,b)=>a.d-b.d);
-  frontSegs.forEach(({p0,p1,fr,fg,fb,alpha,lw})=>{
-    bctx.beginPath();
-    bctx.moveTo(p0.sx,p0.sy);
-    bctx.lineTo(p1.sx,p1.sy);
-    bctx.strokeStyle=`rgba(${fr},${fg},${fb},${alpha})`;
-    bctx.lineWidth=lw;
-    bctx.lineCap='round';
-    bctx.stroke();
-  });
-
-  // 끝단 캡 (상하 원형)
-  for(const yv of [-.5,.5]){
-    // 캡 fill
-    bctx.beginPath();
-    let first=true;
-    for(let i=0;i<=56;i++){
-      const a=i/56*Math.PI*2;
-      const p=proj(R*0.97*Math.cos(a),yv*L,R*0.97*Math.sin(a));
-      if(first){bctx.moveTo(p.sx,p.sy);first=false;}
-      else bctx.lineTo(p.sx,p.sy);
-    }
-    bctx.closePath();
-    bctx.fillStyle='rgba(245,240,232,0.92)';
-    bctx.fill();
-    bctx.strokeStyle='rgba(200,185,160,0.3)';
-    bctx.lineWidth=0.8;
-    bctx.stroke();
+    backSegs.forEach( drawSeg );
+    drawCoreCylinder( R * 0.99, L );
+    frontSegs.forEach( drawSeg );
   }
 
-  bctx.font='500 11px "Noto Sans KR"';
-  bctx.fillStyle='rgba(212,168,75,0.25)';
-  bctx.textAlign='right';
-  bctx.textBaseline='bottom';
-  bctx.fillText('8사 뜨기',BW-14,BH-12);
-}
+  function resetView() {
+    rotX = 0;
+    rotY = 0;
+    zoom = 1;
+    drawBraid();
+  }
 
-function onTw(v){
-  twistD=+v;
-  const i=Math.round((v-3)/19*4);
-  document.getElementById('tvl').textContent=['매우 성김','성김','중간','촘촘','매우 촘촘'][i];
+  // ── Braid 마우스/터치 입력 ──────────────────────────────────────
+  bc.addEventListener( "mousedown", ( e ) => {
+    dragging = true;
+    lx = e.clientX;
+    ly = e.clientY;
+  } );
+  window.addEventListener( "mousemove", ( e ) => {
+    if ( !dragging ) return;
+    rotY += ( e.clientX - lx ) * 0.011;
+    rotX += ( e.clientY - ly ) * 0.011;
+    rotX = Math.max( -1.3, Math.min( 1.3, rotX ) );
+    lx = e.clientX;
+    ly = e.clientY;
+    drawBraid();
+  } );
+  window.addEventListener( "mouseup", () => ( dragging = false ) );
+  bc.addEventListener(
+    "wheel",
+    ( e ) => {
+      e.preventDefault();
+      zoom *= e.deltaY > 0 ? 0.91 : 1.09;
+      zoom = Math.max( 0.3, Math.min( 3.5, zoom ) );
+      drawBraid();
+    },
+    { passive: false },
+  );
+  bc.addEventListener(
+    "touchstart",
+    ( e ) => {
+      e.preventDefault();
+      dragging = true;
+      lx = e.touches[ 0 ].clientX;
+      ly = e.touches[ 0 ].clientY;
+    },
+    { passive: false },
+  );
+  bc.addEventListener(
+    "touchmove",
+    ( e ) => {
+      e.preventDefault();
+      rotY += ( e.touches[ 0 ].clientX - lx ) * 0.013;
+      rotX += ( e.touches[ 0 ].clientY - ly ) * 0.013;
+      rotX = Math.max( -1.3, Math.min( 1.3, rotX ) );
+      lx = e.touches[ 0 ].clientX;
+      ly = e.touches[ 0 ].clientY;
+      drawBraid();
+    },
+    { passive: false },
+  );
+  bc.addEventListener( "touchend", () => ( dragging = false ) );
+
+  // ── 슬라이더 입력 ───────────────────────────────────────────────
+  document.getElementById( "twistDSlider" ).addEventListener( "input", function() {
+    twistD = parseFloat( this.value );
+    document.getElementById( "twistDVal" ).textContent = twistD.toFixed( 1 );
+    drawBraid();
+  } );
+  document.getElementById( "thicknessSlider" ).addEventListener( "input", function() {
+    thickness = parseInt( this.value );
+    document.getElementById( "thicknessVal" ).textContent = thickness;
+    drawBraid();
+  } );
+
+  // ── 초기 렌더 ───────────────────────────────────────────────────
+  drawRing();
   drawBraid();
-}
-function onTh(v){
-  thickness=v/10;
-  document.getElementById('thvl').textContent=thickness.toFixed(1)+'×';
-  drawBraid();
-}
-function resetView(){rotX=0.28;rotY=0.55;zoom=1;drawBraid();}
-
-bc.addEventListener('mousedown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;});
-window.addEventListener('mousemove',e=>{
-  if(!dragging)return;
-  rotY+=(e.clientX-lx)*0.011;rotX+=(e.clientY-ly)*0.011;
-  rotX=Math.max(-1.3,Math.min(1.3,rotX));
-  lx=e.clientX;ly=e.clientY;drawBraid();
-});
-window.addEventListener('mouseup',()=>dragging=false);
-bc.addEventListener('wheel',e=>{
-  e.preventDefault();
-  zoom*=e.deltaY>0?.91:1.09;zoom=Math.max(0.3,Math.min(3.5,zoom));drawBraid();
-},{passive:false});
-bc.addEventListener('touchstart',e=>{e.preventDefault();dragging=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;},{passive:false});
-bc.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  rotY+=(e.touches[0].clientX-lx)*0.013;rotX+=(e.touches[0].clientY-ly)*0.013;
-  rotX=Math.max(-1.3,Math.min(1.3,rotX));
-  lx=e.touches[0].clientX;ly=e.touches[0].clientY;drawBraid();
-},{passive:false});
-bc.addEventListener('touchend',()=>dragging=false);
-
-drawRing();
-drawBraid();
 </script>
