@@ -1,0 +1,352 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Noto+Sans+KR:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#13100c;color:#e8dcc8;font-family:'Noto Sans KR',sans-serif;width:100%}
+.app{display:flex;flex-direction:column}
+.topbar{padding:11px 18px 9px;border-bottom:1px solid rgba(180,140,80,.15);display:flex;align-items:baseline;gap:10px}
+.ttl{font-family:'Noto Serif KR',serif;font-size:15px;color:#d4a84b;letter-spacing:.05em}
+.sub{font-size:10px;color:rgba(212,168,75,.4);letter-spacing:.08em}
+.body{display:flex;gap:0}
+.left{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;gap:8px}
+canvas#braid{border-radius:6px;cursor:grab}
+canvas#braid:active{cursor:grabbing}
+.hint{font-size:9px;color:rgba(212,168,75,.28);letter-spacing:.1em}
+.right{width:256px;border-left:1px solid rgba(180,140,80,.1);display:flex;flex-direction:column}
+.picker-area{padding:14px 14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.lbl{font-size:9px;letter-spacing:.16em;color:rgba(212,168,75,.45);text-transform:uppercase;align-self:flex-start}
+.ring-wrap{position:relative;width:210px;height:210px}
+canvas#ring{position:absolute;top:0;left:0;cursor:default}
+#colorProxy{position:fixed;opacity:0;pointer-events:none;top:0;left:0;width:0;height:0}
+.sliders{padding:10px 14px;border-top:1px solid rgba(180,140,80,.1);display:flex;flex-direction:column;gap:9px}
+.sr{display:flex;flex-direction:column;gap:4px}
+.srow{display:flex;justify-content:space-between;font-size:11px;color:rgba(232,220,200,.6)}
+.sv{color:#d4a84b}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;background:rgba(180,140,80,.2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#d4a84b;cursor:pointer}
+.rbtn{margin:8px 14px 12px;padding:8px;background:transparent;border:1px solid rgba(180,140,80,.18);border-radius:4px;color:rgba(212,168,75,.55);font-size:11px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;letter-spacing:.04em;width:calc(100% - 28px)}
+.rbtn:hover{border-color:rgba(212,168,75,.5);color:#d4a84b}
+</style>
+
+<div class="app">
+<div class="topbar">
+  <span class="ttl">8사 뜨기 시뮬레이터</span>
+  <span class="sub">R1·L1·R2·L2·R3·L3·R4·L4 — 실 위치에서 색상 변경</span>
+</div>
+<div class="body">
+  <div class="left">
+    <canvas id="braid" width="420" height="440"></canvas>
+    <div class="hint">드래그 회전 &nbsp;·&nbsp; 휠 확대축소</div>
+  </div>
+  <div class="right">
+    <div class="picker-area">
+      <div class="lbl">가닥 배치 (클릭 → 색상 변경)</div>
+      <div class="ring-wrap"><canvas id="ring" width="210" height="210"></canvas></div>
+      <div style="font-size:9px;color:rgba(212,168,75,.3)">배색할 때: 오른쪽으로 시작</div>
+    </div>
+    <div class="sliders">
+      <div class="sr">
+        <div class="srow"><span>꼬임 밀도</span><span class="sv" id="tvl">중간</span></div>
+        <input type="range" id="tw" min="3" max="22" value="10" oninput="onTw(this.value)">
+      </div>
+      <div class="sr">
+        <div class="srow"><span>실 굵기</span><span class="sv" id="thvl">1.0×</span></div>
+        <input type="range" id="th" min="4" max="22" value="10" oninput="onTh(this.value)">
+      </div>
+    </div>
+    <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
+  </div>
+</div>
+</div>
+<input type="color" id="colorProxy">
+
+<script>
+const SLOTS = [
+  { id:0, name:'L',  label:'L(나)', angleDeg:  0, color:'#a78bfa' },
+  { id:1, name:'R3', label:'R3',    angleDeg: 45, color:'#86efac' },
+  { id:2, name:'L4', label:'L4',    angleDeg: 90, color:'#fde68a' },
+  { id:3, name:'R2', label:'R2',    angleDeg:135, color:'#fdba74' },
+  { id:4, name:'R1', label:'R1',    angleDeg:180, color:'#f9a8d4' },
+  { id:5, name:'L3', label:'L3',    angleDeg:225, color:'#86efac' },
+  { id:6, name:'4R', label:'4R',    angleDeg:270, color:'#fde68a' },
+  { id:7, name:'2L', label:'2L',    angleDeg:315, color:'#fdba74' },
+];
+const PAIRS = [[0,4],[3,7],[1,5],[2,6]];
+const leftIds  = [0,2,5,7];
+
+let colors = SLOTS.map(s=>s.color);
+let twistD=10, thickness=1.0;
+let rotX=0.28, rotY=0.55, zoom=1;
+let dragging=false, lx=0, ly=0, hovered=-1;
+
+// ── Ring canvas ─────────────────────────────────────
+const rc=document.getElementById('ring');
+const rctx=rc.getContext('2d');
+const RW=rc.width,RH=rc.height,RCX=RW/2,RCY=RH/2;
+const RING_R=78,DOT_R=15;
+
+function slotXY(i){
+  const a=(SLOTS[i].angleDeg-90)*Math.PI/180;
+  return{x:RCX+RING_R*Math.cos(a),y:RCY+RING_R*Math.sin(a)};
+}
+function isDark(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return(r*299+g*587+b*114)/1000<128;
+}
+function drawRing(){
+  rctx.clearRect(0,0,RW,RH);
+  rctx.beginPath();
+  rctx.arc(RCX,RCY,RING_R,0,Math.PI*2);
+  rctx.strokeStyle='rgba(180,140,80,.1)';
+  rctx.lineWidth=1;rctx.setLineDash([2,5]);rctx.stroke();rctx.setLineDash([]);
+  PAIRS.forEach((pair,pi)=>{
+    const a=slotXY(pair[0]),b=slotXY(pair[1]);
+    const axCol=['rgba(163,139,250,0.18)','rgba(249,115,22,0.18)','rgba(34,197,94,0.18)','rgba(234,179,8,0.18)'][pi];
+    rctx.beginPath();rctx.moveTo(a.x,a.y);rctx.lineTo(b.x,b.y);
+    rctx.strokeStyle=axCol;rctx.lineWidth=1.5;rctx.stroke();
+  });
+  rctx.font='500 12px "Noto Serif KR"';rctx.fillStyle='rgba(212,168,75,0.2)';
+  rctx.textAlign='center';rctx.textBaseline='middle';rctx.fillText('8사',RCX,RCY-6);
+  rctx.font='400 9px "Noto Sans KR"';rctx.fillStyle='rgba(212,168,75,0.15)';rctx.fillText('뜨기',RCX,RCY+7);
+  SLOTS.forEach((slot,i)=>{
+    const p=slotXY(i),isHov=(i===hovered),col=colors[i];
+    if(isHov){rctx.beginPath();rctx.arc(p.x,p.y,DOT_R+6,0,Math.PI*2);rctx.fillStyle=col+'25';rctx.fill();}
+    rctx.beginPath();rctx.arc(p.x,p.y,DOT_R+2,0,Math.PI*2);rctx.fillStyle='rgba(0,0,0,.4)';rctx.fill();
+    rctx.beginPath();rctx.arc(p.x,p.y,DOT_R,0,Math.PI*2);rctx.fillStyle=col;rctx.fill();
+    rctx.beginPath();rctx.arc(p.x,p.y,DOT_R,0,Math.PI*2);
+    rctx.strokeStyle=isHov?'rgba(255,255,255,.8)':'rgba(255,255,255,.18)';rctx.lineWidth=isHov?2:1;rctx.stroke();
+    rctx.font=`${isHov?'600':'500'} 9px "Noto Sans KR"`;
+    rctx.fillStyle=isDark(col)?'rgba(255,255,255,.9)':'rgba(0,0,0,.75)';
+    rctx.textAlign='center';rctx.textBaseline='middle';rctx.fillText(slot.label,p.x,p.y);
+  });
+}
+function hitDot(ex,ey){
+  const rect=rc.getBoundingClientRect();
+  const mx=(ex-rect.left)*(RW/rect.width),my=(ey-rect.top)*(RH/rect.height);
+  for(let i=0;i<SLOTS.length;i++){const p=slotXY(i);if((mx-p.x)**2+(my-p.y)**2<=(DOT_R+5)**2)return i;}
+  return -1;
+}
+rc.addEventListener('mousemove',e=>{const h=hitDot(e.clientX,e.clientY);if(h!==hovered){hovered=h;drawRing();}rc.style.cursor=h>=0?'pointer':'default';});
+rc.addEventListener('mouseleave',()=>{hovered=-1;drawRing();rc.style.cursor='default';});
+const proxy=document.getElementById('colorProxy');
+rc.addEventListener('click',e=>{
+  const h=hitDot(e.clientX,e.clientY);if(h<0)return;
+  proxy.value=colors[h];
+  proxy.onchange=function(){colors[h]=this.value;drawRing();drawBraid();};
+  proxy.click();
+});
+
+// ── 3D Braid canvas ─────────────────────────────────
+const bc=document.getElementById('braid');
+const bctx=bc.getContext('2d');
+const BW=bc.width,BH=bc.height,BCX=BW/2,BCY=BH/2;
+
+function proj(x,y,z){
+  const x1=x*Math.cos(rotY)-z*Math.sin(rotY);
+  const z1=x*Math.sin(rotY)+z*Math.cos(rotY);
+  const y2=y*Math.cos(rotX)-z1*Math.sin(rotX);
+  const z2=y*Math.sin(rotX)+z1*Math.cos(rotX);
+  const fov=720,sc=zoom*112;
+  const s=fov/(fov+z2+230);
+  return{sx:BCX+x1*s*sc,sy:BCY+y2*s*sc,d:z2};
+}
+function h2rgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+
+// 원통 표면을 세로 스트립으로 나눠서 채우기
+// 각 스트립의 앞/뒤를 판별해 앞면만 흰색으로 그림
+function drawCylinderFill(R, L){
+  const YSTEPS = 80;  // 세로 분할
+  const ASTEPS = 60;  // 원 둘레 분할
+
+  // 원통 표면 quad들을 수집해서 depth sort
+  const quads = [];
+  for(let ai=0; ai<ASTEPS; ai++){
+    const a0 = (ai/ASTEPS)*Math.PI*2;
+    const a1 = ((ai+1)/ASTEPS)*Math.PI*2;
+    for(let yi=0; yi<YSTEPS; yi++){
+      const y0 = (yi/YSTEPS - 0.5)*L;
+      const y1 = ((yi+1)/YSTEPS - 0.5)*L;
+      const p00=proj(R*Math.cos(a0),y0,R*Math.sin(a0));
+      const p10=proj(R*Math.cos(a1),y0,R*Math.sin(a1));
+      const p11=proj(R*Math.cos(a1),y1,R*Math.sin(a1));
+      const p01=proj(R*Math.cos(a0),y1,R*Math.sin(a0));
+      const avgD=(p00.d+p10.d+p11.d+p01.d)/4;
+
+      // 법선벡터의 z성분으로 앞면/뒷면 판별
+      // 앞면이면(z>0 방향이 카메라를 향하면) 흰색 fill
+      const midAng=(a0+a1)/2;
+      // 회전된 법선
+      const nx=Math.cos(midAng), nz=Math.sin(midAng);
+      const nx2=nx*Math.cos(rotY)+nz*Math.sin(rotY); // rotY 적용
+      // rotX 적용 후 z성분
+      const nzFinal= -nx*Math.sin(rotY)*Math.sin(rotX)+nz*Math.cos(rotX);
+      const isFront = nzFinal < 0; // 카메라 쪽을 향하면 앞면
+
+      quads.push({p00,p10,p11,p01,avgD,isFront});
+    }
+  }
+  quads.sort((a,b)=>a.avgD-b.avgD);
+
+  quads.forEach(({p00,p10,p11,p01,isFront})=>{
+    bctx.beginPath();
+    bctx.moveTo(p00.sx,p00.sy);
+    bctx.lineTo(p10.sx,p10.sy);
+    bctx.lineTo(p11.sx,p11.sy);
+    bctx.lineTo(p01.sx,p01.sy);
+    bctx.closePath();
+    if(isFront){
+      // 앞면: 흰색 (약간 warm white)
+      bctx.fillStyle='rgba(252,250,245,1)';
+    } else {
+      // 뒷면: 어두운 색 (안보이게)
+      bctx.fillStyle='rgba(20,16,12,1)';
+    }
+    bctx.fill();
+    // 앞면에만 아주 미세한 테두리 (원통감)
+    if(isFront){
+      bctx.strokeStyle='rgba(220,210,195,0.15)';
+      bctx.lineWidth=0.3;
+      bctx.stroke();
+    }
+  });
+}
+
+function drawBraid(){
+  bctx.clearRect(0,0,BW,BH);
+  bctx.fillStyle='#13100c';
+  bctx.fillRect(0,0,BW,BH);
+
+  const R=0.50,L=3.0,SEGS=240;
+
+  // 원통 내부 채우기 (실보다 먼저 → 뒤쪽 실이 가려짐)
+  drawCylinderFill(R*0.97, L);
+
+  // 실 세그먼트 생성
+  const allSegs=[];
+  SLOTS.forEach((slot,si)=>{
+    const isLeft=leftIds.includes(si);
+    const baseAng=(slot.angleDeg-90)*Math.PI/180;
+    const rgb=h2rgb(colors[si]);
+    const twistSign=isLeft?1:-1;
+    const phase=baseAng;
+
+    for(let s=0;s<SEGS;s++){
+      const t0=s/SEGS,t1=(s+1)/SEGS;
+      const tw0=t0*Math.PI*2*twistD*0.5;
+      const tw1=t1*Math.PI*2*twistD*0.5;
+      const over0=Math.sin(tw0*2*twistSign+phase*2);
+      const over1=Math.sin(tw1*2*twistSign+phase*2);
+      const r0=R*(1+over0*0.20);
+      const r1=R*(1+over1*0.20);
+      const ang0=baseAng+tw0*twistSign;
+      const ang1=baseAng+tw1*twistSign;
+
+      const p0=proj(r0*Math.cos(ang0),(t0-.5)*L,r0*Math.sin(ang0));
+      const p1=proj(r1*Math.cos(ang1),(t1-.5)*L,r1*Math.sin(ang1));
+      const avgD=(p0.d+p1.d)/2;
+
+      // 원통 뒷면에 있는 실은 건너뜀 (내부 흰통이 가려야 하므로)
+      // depth > 0 이면 카메라 반대쪽(뒷면) → 그리지 않음
+      // 단, over0 > 0 (원통 바깥으로 튀어나온 부분)은 항상 그림
+      const isOutside = over0 > -0.1;
+
+      // 앞쪽 절반(depth가 낮음=카메라 가까움)이거나 바깥으로 튀어나온 실만 그림
+      const depthSh=Math.max(0.35,Math.min(1,(avgD+270)/550));
+      const overSh=over0>0?1.0:0.55;
+      const alpha=over0>0?0.97:0.78;
+      const fr=Math.min(255,Math.round(rgb[0]*depthSh*overSh));
+      const fg=Math.min(255,Math.round(rgb[1]*depthSh*overSh));
+      const fb=Math.min(255,Math.round(rgb[2]*depthSh*overSh));
+      const lw=Math.max(1.2,thickness*3.2*(1+Math.abs(over0)*0.1));
+
+      allSegs.push({p0,p1,fr,fg,fb,alpha,d:avgD,lw,isOutside});
+    }
+  });
+
+  // depth sort — 뒤→앞 순으로 그리되, 원통 fill이 중간 레이어 역할
+  // 전략: 
+  //   1) 뒷면 실 (d > 0) → 원통 fill 전에 그림 (가려짐)
+  //   2) 원통 fill
+  //   3) 앞면 실 (d <= 0) → fill 위에 그림 (보임)
+
+  const backSegs = allSegs.filter(s=>s.d>0);
+  const frontSegs = allSegs.filter(s=>s.d<=0);
+
+  // 뒷면 실 먼저 (가려질 것들 — 사실상 안그려도 되지만 혹시 몰라서)
+  // → 원통 fill이 이미 덮으므로 skip
+
+  // 앞면 실만 그리기 (원통 fill 위에)
+  frontSegs.sort((a,b)=>a.d-b.d);
+  frontSegs.forEach(({p0,p1,fr,fg,fb,alpha,lw})=>{
+    bctx.beginPath();
+    bctx.moveTo(p0.sx,p0.sy);
+    bctx.lineTo(p1.sx,p1.sy);
+    bctx.strokeStyle=`rgba(${fr},${fg},${fb},${alpha})`;
+    bctx.lineWidth=lw;
+    bctx.lineCap='round';
+    bctx.stroke();
+  });
+
+  // 끝단 캡 (상하 원형)
+  for(const yv of [-.5,.5]){
+    // 캡 fill
+    bctx.beginPath();
+    let first=true;
+    for(let i=0;i<=56;i++){
+      const a=i/56*Math.PI*2;
+      const p=proj(R*0.97*Math.cos(a),yv*L,R*0.97*Math.sin(a));
+      if(first){bctx.moveTo(p.sx,p.sy);first=false;}
+      else bctx.lineTo(p.sx,p.sy);
+    }
+    bctx.closePath();
+    bctx.fillStyle='rgba(245,240,232,0.92)';
+    bctx.fill();
+    bctx.strokeStyle='rgba(200,185,160,0.3)';
+    bctx.lineWidth=0.8;
+    bctx.stroke();
+  }
+
+  bctx.font='500 11px "Noto Sans KR"';
+  bctx.fillStyle='rgba(212,168,75,0.25)';
+  bctx.textAlign='right';
+  bctx.textBaseline='bottom';
+  bctx.fillText('8사 뜨기',BW-14,BH-12);
+}
+
+function onTw(v){
+  twistD=+v;
+  const i=Math.round((v-3)/19*4);
+  document.getElementById('tvl').textContent=['매우 성김','성김','중간','촘촘','매우 촘촘'][i];
+  drawBraid();
+}
+function onTh(v){
+  thickness=v/10;
+  document.getElementById('thvl').textContent=thickness.toFixed(1)+'×';
+  drawBraid();
+}
+function resetView(){rotX=0.28;rotY=0.55;zoom=1;drawBraid();}
+
+bc.addEventListener('mousedown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  rotY+=(e.clientX-lx)*0.011;rotX+=(e.clientY-ly)*0.011;
+  rotX=Math.max(-1.3,Math.min(1.3,rotX));
+  lx=e.clientX;ly=e.clientY;drawBraid();
+});
+window.addEventListener('mouseup',()=>dragging=false);
+bc.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom*=e.deltaY>0?.91:1.09;zoom=Math.max(0.3,Math.min(3.5,zoom));drawBraid();
+},{passive:false});
+bc.addEventListener('touchstart',e=>{e.preventDefault();dragging=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;},{passive:false});
+bc.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  rotY+=(e.touches[0].clientX-lx)*0.013;rotX+=(e.touches[0].clientY-ly)*0.013;
+  rotX=Math.max(-1.3,Math.min(1.3,rotX));
+  lx=e.touches[0].clientX;ly=e.touches[0].clientY;drawBraid();
+},{passive:false});
+bc.addEventListener('touchend',()=>dragging=false);
+
+drawRing();
+drawBraid();
+</script>
