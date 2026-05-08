@@ -1,2 +1,3 @@
-# braid-simulator
-A preview tool for the traditional Korean knotting pattern “8-Sa-Tteugi”.
+Copyright © HENNEY. All rights reserved.
+Unauthorized copying, modification, and distribution of this source code are strictly prohibited.
+이 소스 코드의 무단 전재, 수정 및 재배포를 금지합니다.
