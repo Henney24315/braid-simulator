@@ -1,3 +1,4 @@
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding&family=Orbit&family=ZCOOL+QingKe+HuangYou&display=swap');
 
@@ -72,6 +73,9 @@
   canvas#braid {
     border-radius: 6px;
     cursor: grab;
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+    display: block;
   }
 
   canvas#braid:active {
@@ -202,6 +206,60 @@
     letter-spacing: 0.1em;
     white-space: pre-wrap;
   }
+
+  /* ── 모바일 반응형 ─────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .body {
+      flex-direction: column;
+    }
+    .left {
+      padding: 10px 12px 4px;
+      width: 100%;
+    }
+    .right {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid rgba(var(--primary-rgb), 0.1);
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .picker-area {
+      flex: 0 0 auto;
+      padding: 10px 8px 8px;
+    }
+    .ring-wrap {
+      width: 150px;
+      height: 150px;
+    }
+    canvas#ring {
+      width: 150px;
+      height: 150px;
+    }
+    .controls {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 10px 6px;
+      gap: 4px;
+    }
+    .sliders {
+      border-top: none;
+      padding: 0;
+    }
+    .rbtn {
+      margin: 8px 0 0;
+      width: 100%;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      width: 20px;
+      height: 20px;
+    }
+    input[type="range"] {
+      height: 4px;
+    }
+  }
 </style>
 
 <div class="app">
@@ -220,23 +278,25 @@
           <canvas id="ring" width="210" height="210"></canvas>
         </div>
       </div>
-      <div class="sliders">
-        <div class="sr">
-          <div class="srow">
-            <span>꼬임 밀도</span>
-            <span class="sv" id="twistDVal">2.0</span>
+      <div class="controls">
+        <div class="sliders">
+          <div class="sr">
+            <div class="srow">
+              <span>꼬임 밀도</span>
+              <span class="sv" id="twistDVal">2.0</span>
+            </div>
+            <input type="range" id="twistDSlider" min="0.5" max="6" step="0.1" value="2" />
           </div>
-          <input type="range" id="twistDSlider" min="0.5" max="6" step="0.1" value="2" />
-        </div>
-        <div class="sr">
-          <div class="srow">
-            <span>가닥 두께</span>
-            <span class="sv" id="thicknessVal">8</span>
+          <div class="sr">
+            <div class="srow">
+              <span>가닥 두께</span>
+              <span class="sv" id="thicknessVal">8</span>
+            </div>
+            <input type="range" id="thicknessSlider" min="1" max="20" step="1" value="8" />
           </div>
-          <input type="range" id="thicknessSlider" min="1" max="20" step="1" value="8" />
         </div>
+        <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
       </div>
-      <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
     </div>
   </div>
 </div>
@@ -630,30 +690,52 @@
     },
     { passive: false },
   );
+  let pinchDist0 = null;
   bc.addEventListener(
     "touchstart",
-    ( e ) => {
+    (e) => {
       e.preventDefault();
-      dragging = true;
-      lx = e.touches[ 0 ].clientX;
-      ly = e.touches[ 0 ].clientY;
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchDist0 = Math.hypot(dx, dy);
+        dragging = false;
+      } else {
+        pinchDist0 = null;
+        dragging = true;
+        lx = e.touches[0].clientX;
+        ly = e.touches[0].clientY;
+      }
     },
     { passive: false },
   );
   bc.addEventListener(
     "touchmove",
-    ( e ) => {
+    (e) => {
       e.preventDefault();
-      rotY += ( e.touches[ 0 ].clientX - lx ) * 0.013;
-      rotX += ( e.touches[ 0 ].clientY - ly ) * 0.013;
-      rotX = Math.max( -1.3, Math.min( 1.3, rotX ) );
-      lx = e.touches[ 0 ].clientX;
-      ly = e.touches[ 0 ].clientY;
-      drawBraid();
+      if (e.touches.length === 2 && pinchDist0 !== null) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        zoom *= dist / pinchDist0;
+        zoom = Math.max(0.3, Math.min(3.5, zoom));
+        pinchDist0 = dist;
+        drawBraid();
+      } else if (e.touches.length === 1 && dragging) {
+        rotY += (e.touches[0].clientX - lx) * 0.013;
+        rotX += (e.touches[0].clientY - ly) * 0.013;
+        rotX = Math.max(-1.3, Math.min(1.3, rotX));
+        lx = e.touches[0].clientX;
+        ly = e.touches[0].clientY;
+        drawBraid();
+      }
     },
     { passive: false },
   );
-  bc.addEventListener( "touchend", () => ( dragging = false ) );
+  bc.addEventListener("touchend", (e) => {
+    if (e.touches.length < 2) pinchDist0 = null;
+    if (e.touches.length === 0) dragging = false;
+  });
 
   // ── 슬라이더 입력 ───────────────────────────────────────────────
   document.getElementById( "twistDSlider" ).addEventListener( "input", function() {
@@ -668,6 +750,10 @@
   } );
 
   // ── 초기 렌더 ───────────────────────────────────────────────────
+  if (window.matchMedia("(pointer: coarse)").matches) {
+    document.querySelector(".hint").textContent =
+      "한 손가락 드래그 회전  ·  두 손가락 핀치 확대축소";
+  }
   drawRing();
   drawBraid();
 </script>
