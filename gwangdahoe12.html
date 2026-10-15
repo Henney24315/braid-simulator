@@ -49,7 +49,7 @@
   }
 
   .ttl {
-    font-size: 15px;
+    font-size: 20px;
     color: var(--primary);
     letter-spacing: 0.05em;
   }
@@ -62,12 +62,12 @@
   }
 
   .menu a {
-    font-size: 11px;
+    font-size: 14px;
     color: var(--primary);
     text-decoration: none;
     border: 1px solid rgba(var(--primary-rgb), 0.25);
     border-radius: 4px;
-    padding: 3px 8px;
+    padding: 5px 12px;
     letter-spacing: 0.04em;
     white-space: nowrap;
   }
@@ -110,13 +110,13 @@
   }
 
   .hint {
-    font-size: 9px;
+    font-size: 12px;
     color: var(--primary);
     letter-spacing: 0.1em;
   }
 
   .right {
-    width: 256px;
+    width: 300px;
     border-left: 1px solid rgba(var(--primary-rgb), 0.1);
     display: flex;
     flex-direction: column;
@@ -131,7 +131,7 @@
   }
 
   .lbl {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 0.16em;
     color: var(--primary);
     text-transform: uppercase;
@@ -152,18 +152,18 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    font-size: 11px;
+    font-size: 14px;
     color: var(--primary);
   }
 
   .stepnav button {
-    width: 26px;
-    height: 22px;
+    width: 34px;
+    height: 28px;
     background: transparent;
     border: 1px solid rgba(var(--primary-rgb), 0.25);
     border-radius: 4px;
     color: var(--primary);
-    font-size: 10px;
+    font-size: 12px;
     cursor: pointer;
   }
 
@@ -173,7 +173,7 @@
   }
 
   .stepnav span {
-    min-width: 72px;
+    min-width: 90px;
     text-align: center;
   }
 
@@ -204,7 +204,7 @@
   .srow {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 14px;
     color: var(--primary);
   }
 
@@ -225,8 +225,8 @@
 
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 13px;
-    height: 13px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: var(--primary);
     cursor: pointer;
@@ -234,12 +234,12 @@
 
   .rbtn {
     margin: 8px 14px 12px;
-    padding: 8px;
+    padding: 10px;
     background: transparent;
     border: 1px solid rgba(var(--primary-rgb), 0.18);
     border-radius: 4px;
     color: var(--primary);
-    font-size: 11px;
+    font-size: 14px;
     cursor: pointer;
     letter-spacing: 0.04em;
     width: calc(100% - 28px);
@@ -258,7 +258,7 @@
     border-top: 1px solid rgba(var(--primary-rgb), 0.15);
     text-align: center;
     padding: 10px 0 12px;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--primary);
     letter-spacing: 0.1em;
     white-space: pre-wrap;
@@ -293,6 +293,7 @@
       padding: 10px 12px;
     }
     .rbtn {
+      font-size: 12px;
       margin: 8px 12px 12px;
       width: calc(100% - 24px);
     }
@@ -302,6 +303,9 @@
     }
     input[type="range"] {
       height: 4px;
+    }
+    .copyright {
+      font-size: 10px;
     }
   }
 </style>
@@ -638,7 +642,7 @@
       lctx.stroke();
 
       lctx.fillStyle = isDark( col ) ? "rgba(255,255,255,1)" : "rgba(0,0,0,0.75)";
-      lctx.font = "10px sans-serif";
+      lctx.font = "12px sans-serif";
       lctx.textAlign = "center";
       lctx.textBaseline = "middle";
       lctx.fillText( STRANDS[ si ], pt.x, pt.y );
