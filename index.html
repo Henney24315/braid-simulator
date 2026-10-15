@@ -340,6 +340,7 @@
         </div>
         <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
         <button class="rbtn" onclick="shuffleColors()">⤮ 색상 랜덤 섞기</button>
+        <button class="rbtn" onclick="randomColors()">✦ 무작위 색상</button>
       </div>
     </div>
   </div>
@@ -717,6 +718,27 @@
         [ colors[ i ], colors[ j ] ] = [ colors[ j ], colors[ i ] ];
       }
     } while ( colors.join() === prev && new Set( colors ).size > 1 );
+    drawRing();
+    drawBraid();
+  }
+
+  function hslToHex( h, s, l ) {
+    s /= 100;
+    l /= 100;
+    const f = ( n ) => {
+      const k = ( n + h / 30 ) % 12;
+      const c = l - s * Math.min( l, 1 - l ) * Math.max( -1, Math.min( k - 3, 9 - k, 1 ) );
+      return Math.round( c * 255 ).toString( 16 ).padStart( 2, "0" );
+    };
+    return `#${f( 0 )}${f( 8 )}${f( 4 )}`;
+  }
+
+  // 가닥마다 새 색을 무작위로 뽑음. 색상(hue)은 황금각(≈137.5°)씩 벌려서 비슷한 색이 겹치지 않게 함
+  function randomColors() {
+    const h0 = Math.random() * 360;
+    colors = colors.map( ( _, i ) =>
+      hslToHex( ( h0 + i * 137.508 ) % 360, 55 + Math.random() * 40, 35 + Math.random() * 35 ),
+    );
     drawRing();
     drawBraid();
   }
