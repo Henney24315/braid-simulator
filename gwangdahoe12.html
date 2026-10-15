@@ -54,8 +54,14 @@
     letter-spacing: 0.05em;
   }
 
-  .nav {
+  /* 페이지 메뉴 (현재 페이지는 aria-current="page" 로 강조) */
+  .menu {
     margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+
+  .menu a {
     font-size: 11px;
     color: var(--primary);
     text-decoration: none;
@@ -63,10 +69,17 @@
     border-radius: 4px;
     padding: 3px 8px;
     letter-spacing: 0.04em;
+    white-space: nowrap;
   }
 
-  .nav:hover {
+  .menu a:hover {
     border-color: rgba(var(--primary-rgb), 0.6);
+  }
+
+  .menu a[aria-current="page"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
   }
 
   .body {
@@ -249,6 +262,10 @@
 
   /* ── 모바일 반응형 ─────────────────────────────────────────────── */
   @media (max-width: 640px) {
+    .topbar {
+      flex-wrap: wrap;
+      row-gap: 6px;
+    }
     .body {
       flex-direction: column;
     }
@@ -290,7 +307,10 @@
 <div class="app">
   <div class="topbar">
     <span class="ttl">12사광다회치기 시뮬레이터</span>
-    <a class="nav" href="index.html">← 8사치기</a>
+    <nav class="menu">
+      <a href="index.html">8사치기</a>
+      <a href="gwangdahoe12.html" aria-current="page">12사광다회치기</a>
+    </nav>
   </div>
   <div class="body">
     <div class="left">
