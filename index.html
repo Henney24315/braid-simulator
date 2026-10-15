@@ -225,6 +225,10 @@
     color: var(--primary);
   }
 
+  .rbtn + .rbtn {
+    margin-top: 0;
+  }
+
   .copyright {
     border-top: 1px solid rgba(var(--primary-rgb), 0.15);
     text-align: center;
@@ -284,6 +288,9 @@
       margin: 8px 0 0;
       width: 100%;
     }
+    .rbtn + .rbtn {
+      margin-top: 6px;
+    }
     input[type="range"]::-webkit-slider-thumb {
       width: 20px;
       height: 20px;
@@ -332,6 +339,7 @@
           </div>
         </div>
         <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
+        <button class="rbtn" onclick="shuffleColors()">⤮ 색상 랜덤 섞기</button>
       </div>
     </div>
   </div>
@@ -697,6 +705,19 @@
     rotX = 0;
     rotY = 0;
     zoom = 1;
+    drawBraid();
+  }
+
+  // 지금 쓰는 색들을 가닥끼리 무작위로 바꿔 끼움 (Fisher–Yates, 이전과 똑같은 배치는 다시 섞음)
+  function shuffleColors() {
+    const prev = colors.join();
+    do {
+      for ( let i = colors.length - 1; i > 0; i-- ) {
+        const j = Math.floor( Math.random() * ( i + 1 ) );
+        [ colors[ i ], colors[ j ] ] = [ colors[ j ], colors[ i ] ];
+      }
+    } while ( colors.join() === prev && new Set( colors ).size > 1 );
+    drawRing();
     drawBraid();
   }
 
