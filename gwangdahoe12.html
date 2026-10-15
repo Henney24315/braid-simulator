@@ -826,17 +826,36 @@
     const backSegs = [],
       frontSegs = [];
 
-    // 가닥 si 가 단 j 에서 j+1 로 넘어가는 동안의 위치 (u: 0~1)
-    function pathPoint( p0, delta, j, u ) {
-      const e = smooth( u );
-      const s = p0 + 0.5 + delta * e;
-      // 옮겨 가는 실: 지나가는 자리마다 위 → 아래 → 위 … 번갈아 지나감
-      const ov = delta ? -Math.sin( Math.PI * e ) * Math.cos( Math.PI * Math.abs( delta ) * e ) : 0;
+    // 가닥 하나의 구간 목록 { t0, t1 (단), s0 (둘레 좌표), d (이동량) }
+    // 옮겨 가는 실은 다음에 다시 옮겨질 때까지 비스듬히 이어지게 해서, 실제 코처럼 계속 기울어 보이게 함
+    function strandSpans( si ) {
+      const moves = [];
+      for ( let j = 0; j < steps; j++ ) {
+        const p = states[ j ].indexOf( si ),
+          q = states[ j + 1 ].indexOf( si );
+        if ( p !== q ) moves.push( { j, p, d: shortestDelta( p, q ) } );
+      }
+      const spans = [];
+      if ( !moves.length ) return [ { t0: 0, t1: steps, s0: states[ 0 ].indexOf( si ) + 0.5, d: 0 } ];
+      if ( moves[ 0 ].j > 0 ) spans.push( { t0: 0, t1: moves[ 0 ].j, s0: moves[ 0 ].p + 0.5, d: 0 } );
+      const gap = moves.length > 1 ? moves[ 1 ].j - moves[ 0 ].j : 1;
+      moves.forEach( ( m, k ) => {
+        const t1 = k + 1 < moves.length ? moves[ k + 1 ].j : Math.min( steps, m.j + gap );
+        spans.push( { t0: m.j, t1, s0: m.p + 0.5, d: m.d } );
+        if ( k + 1 === moves.length && t1 < steps ) spans.push( { t0: t1, t1: steps, s0: m.p + m.d + 0.5, d: 0 } );
+      } );
+      return spans;
+    }
+
+    // 구간 안의 위치 (u: 0~1). 옮겨 가는 실은 다른 실 바깥으로 감싸며 지나감
+    function pathPoint( sp, u ) {
+      const s = sp.s0 + sp.d * u;
+      const ov = sp.d ? Math.sin( Math.PI * u ) : 0;
       const phi = normalAngle( s );
       const r = rectPoint( s );
       const off = OFF0 + OFF_AMP * ov;
       return {
-        p: proj( r.x + off * Math.cos( phi ), -L / 2 + ( j + u ) * stepH, r.z + off * Math.sin( phi ) ),
+        p: proj( r.x + off * Math.cos( phi ), -L / 2 + ( sp.t0 + ( sp.t1 - sp.t0 ) * u ) * stepH, r.z + off * Math.sin( phi ) ),
         ov,
         phi,
       };
@@ -844,14 +863,12 @@
 
     for ( let si = 0; si < STRANDS.length; si++ ) {
       const rgb = hexToRgb( colors[ si ] );
-      for ( let j = 0; j < steps; j++ ) {
-        const p0 = states[ j ].indexOf( si );
-        const p1 = states[ j + 1 ].indexOf( si );
-        const delta = shortestDelta( p0, p1 );
-        let prev = pathPoint( p0, delta, j, 0 );
-        for ( let k = 1; k <= SUB; k++ ) {
-          const cur = pathPoint( p0, delta, j, k / SUB );
-          const mid = pathPoint( p0, delta, j, ( k - 0.5 ) / SUB );
+      for ( const sp of strandSpans( si ) ) {
+        const n = Math.max( 1, Math.round( SUB * ( sp.t1 - sp.t0 ) ) );
+        let prev = pathPoint( sp, 0 );
+        for ( let k = 1; k <= n; k++ ) {
+          const cur = pathPoint( sp, k / n );
+          const mid = pathPoint( sp, ( k - 0.5 ) / n );
           const nz = facing( mid.phi );
           const light = 0.6 + 0.55 * Math.max( 0, -nz );
           const sh = light * ( 1 + 0.3 * mid.ov );
