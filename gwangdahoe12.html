@@ -832,7 +832,8 @@
       frontSegs = [];
 
     // 가닥 하나의 구간 목록 { t0, t1 (단), s0 (둘레 좌표), d (이동량) }
-    // 옮겨 가는 실은 다음에 다시 옮겨질 때까지 비스듬히 이어지게 해서, 실제 코처럼 계속 기울어 보이게 함
+    // 한 번 옮길 때 1~3자리씩 제각각 움직이지만, 첫 이동부터 마지막 이동까지 같은 빠르기로 둘레를 돌게 해서
+    // 8사처럼 각 면에서 곧은 사선으로 내려가게 함. 구간은 위·아래 겹침(나중에 옮긴 실이 바깥) 계산에만 씀
     function strandSpans( si ) {
       const moves = [];
       for ( let j = 0; j < steps; j++ ) {
@@ -840,14 +841,20 @@
           q = states[ j + 1 ].indexOf( si );
         if ( p !== q ) moves.push( { j, p, d: shortestDelta( p, q ) } );
       }
-      const spans = [];
       if ( !moves.length ) return [ { t0: 0, t1: steps, s0: states[ 0 ].indexOf( si ) + 0.5, d: 0 } ];
-      if ( moves[ 0 ].j > 0 ) spans.push( { t0: 0, t1: moves[ 0 ].j, s0: moves[ 0 ].p + 0.5, d: 0 } );
       const gap = moves.length > 1 ? moves[ 1 ].j - moves[ 0 ].j : 1;
+      const tA = moves[ 0 ].j,
+        tB = moves[ moves.length - 1 ].j + gap,
+        sA = moves[ 0 ].p + 0.5;
+      const v = moves.reduce( ( acc, m ) => acc + m.d, 0 ) / ( tB - tA );
+      const lineS = ( t ) => sA + v * ( Math.min( Math.max( t, tA ), tB ) - tA );
+
+      const spans = [];
+      if ( tA > 0 ) spans.push( { t0: 0, t1: tA, s0: sA, d: 0 } );
       moves.forEach( ( m, k ) => {
         const t1 = k + 1 < moves.length ? moves[ k + 1 ].j : Math.min( steps, m.j + gap );
-        spans.push( { t0: m.j, t1, s0: m.p + 0.5, d: m.d } );
-        if ( k + 1 === moves.length && t1 < steps ) spans.push( { t0: t1, t1: steps, s0: m.p + m.d + 0.5, d: 0 } );
+        spans.push( { t0: m.j, t1, s0: lineS( m.j ), d: lineS( t1 ) - lineS( m.j ) } );
+        if ( k + 1 === moves.length && t1 < steps ) spans.push( { t0: t1, t1: steps, s0: lineS( t1 ), d: 0 } );
       } );
       return spans;
     }
