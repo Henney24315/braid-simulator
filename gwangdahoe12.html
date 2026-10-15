@@ -358,6 +358,7 @@
         <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
         <button class="rbtn" onclick="shuffleColors()">⤮ 색상 랜덤 섞기</button>
         <button class="rbtn" onclick="randomColors()">✦ 무작위 색상</button>
+        <button class="rbtn" onclick="uniformColor()">● 한 가지 색으로 통일</button>
       </div>
     </div>
   </div>
@@ -948,6 +949,17 @@
     );
     drawLayout();
     drawBraid();
+  }
+
+  // 색을 하나 골라 모든 가닥에 똑같이 칠함
+  function uniformColor() {
+    proxy.value = colors[ 0 ];
+    proxy.onchange = function() {
+      colors = colors.map( () => this.value );
+      drawLayout();
+      drawBraid();
+    };
+    proxy.click();
   }
 
   // ── Braid 마우스/터치 입력 ──────────────────────────────────────
