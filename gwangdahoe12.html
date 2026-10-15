@@ -343,16 +343,16 @@
           <div class="sr">
             <div class="srow">
               <span>단 간격</span>
-              <span class="sv" id="stepHVal">0.24</span>
+              <span class="sv" id="stepHVal">0.14</span>
             </div>
-            <input type="range" id="stepHSlider" min="0.1" max="0.5" step="0.01" value="0.24" />
+            <input type="range" id="stepHSlider" min="0.1" max="0.5" step="0.01" value="0.14" />
           </div>
           <div class="sr">
             <div class="srow">
               <span>가닥 두께</span>
-              <span class="sv" id="thicknessVal">8</span>
+              <span class="sv" id="thicknessVal">11</span>
             </div>
-            <input type="range" id="thicknessSlider" min="1" max="20" step="1" value="8" />
+            <input type="range" id="thicknessSlider" min="1" max="20" step="1" value="11" />
           </div>
         </div>
         <button class="rbtn" onclick="resetView()">↺ 시점 초기화</button>
@@ -471,8 +471,8 @@
   // ── 전역 상태 ───────────────────────────────────────────────────
   let colors = STRANDS.map( ( k ) => COLORS[ k ] );
   let steps = 12;
-  let stepH = 0.24;
-  let thickness = 8;
+  let stepH = 0.14;
+  let thickness = 11;
   let viewStep = 0;
   let states = computeStates( steps );
   let rotX = 0;
@@ -847,15 +847,18 @@
       return spans;
     }
 
-    // 구간 안의 위치 (u: 0~1). 옮겨 가는 실은 다른 실 바깥으로 감싸며 지나감
+    // 구간 안의 위치 (u: 0~1). 옮겨 가는 실은 다른 실 바깥으로 감싸며 지나감:
+    // 나중에 옮긴 실일수록 바깥에 있도록, 옮기기 시작할 때 가장 바깥이고 다음 이동 때까지 점점 안으로 눌림
     function pathPoint( sp, u ) {
       const s = sp.s0 + sp.d * u;
-      const ov = sp.d ? Math.sin( Math.PI * u ) : 0;
+      const ov = sp.d ? ( 1 - u ) * Math.min( 1, u * 6 ) : 0;
       const phi = normalAngle( s );
       const r = rectPoint( s );
       const off = OFF0 + OFF_AMP * ov;
+      const y = -L / 2 + ( sp.t0 + ( sp.t1 - sp.t0 ) * u ) * stepH;
       return {
-        p: proj( r.x + off * Math.cos( phi ), -L / 2 + ( sp.t0 + ( sp.t1 - sp.t0 ) * u ) * stepH, r.z + off * Math.sin( phi ) ),
+        p: proj( r.x + off * Math.cos( phi ), y, r.z + off * Math.sin( phi ) ),
+        db: proj( r.x + OFF0 * Math.cos( phi ), y, r.z + OFF0 * Math.sin( phi ) ).d, // 감김과 상관없는 표면 깊이
         ov,
         phi,
       };
@@ -877,7 +880,8 @@
             p1: cur.p,
             col: `rgb(${Math.min( 255, Math.round( rgb[ 0 ] * sh ) )},${Math.min( 255, Math.round( rgb[ 1 ] * sh ) )},${Math.min( 255, Math.round( rgb[ 2 ] * sh ) )})`,
             lw: ( thickness / 10 ) * GAP * sc * PERSP * ( 1 + 0.12 * mid.ov ),
-            d: mid.p.d,
+            // 겹치는 곳에서 더 바깥에 감긴 실이 확실히 위에 오도록, 표면 깊이에서 감김 정도만큼 앞으로 당겨 정렬
+            d: mid.db - mid.ov * GAP * 2,
           };
           // 나를 향한 면의 실은 막대기 앞에, 반대쪽 면의 실은 막대기 뒤에 그림
           ( nz < 0 ? frontSegs : backSegs ).push( seg );
