@@ -466,6 +466,8 @@
     return states;
   }
 
+  const smooth = ( t ) => t * t * ( 3 - 2 * t );
+
   /** 자리 a → b 로 둘레를 따라 가는 가장 짧은 방향의 이동량 (음수 = 반시계) */
   function shortestDelta( a, b ) {
     return ( ( ( b - a + N_POS * 1.5 ) % N_POS ) + N_POS ) % N_POS - N_POS / 2;
@@ -815,7 +817,7 @@
     // 링 캔버스의 각도 θ(아래 = 나)를 3D 로: x = r·cosθ, z = −r·sinθ (z 가 작을수록 나에게 가까움)
     function pathPoint( sp, u ) {
       const th = ( posDeg( sp.s0 + sp.d * u ) * Math.PI ) / 180;
-      const ov = sp.d ? ( 1 - u ) * Math.min( 1, u * 6 ) : 0;
+      const ov = sp.d ? ( 1 - u ) * smooth( Math.min( 1, u * 3 ) ) : 0;
       const y = -L / 2 + ( sp.t0 + ( sp.t1 - sp.t0 ) * u ) * stepH;
       const r0 = CORE_R + OFF0,
         r = r0 + OFF_AMP * ov;
@@ -827,58 +829,109 @@
       };
     }
 
-    // 실을 짧은 조각(¼단)으로 나눠 조각마다 테두리와 색을 한 번에 그림.
-    // 조각이 너무 잘면 겹친 곳에서 두 실이 번갈아 칠해져 테두리가 끊겨 보임
-    const PIECE = 4;
     for ( let si = 0; si < SLOTS.length; si++ ) {
       const rgb = hexToRgb( colors[ si ] );
       for ( const sp of strandSpans( si ) ) {
         const n = Math.max( 1, Math.round( SUB * ( sp.t1 - sp.t0 ) ) );
-        const pts = [];
-        for ( let k = 0; k <= n; k++ ) pts.push( pathPoint( sp, k / n ).p );
-        for ( let k0 = 0; k0 < n; k0 += PIECE ) {
-          const k1 = Math.min( n, k0 + PIECE );
-          const mid = pathPoint( sp, ( k0 + k1 ) / 2 / n );
+        let prev = pathPoint( sp, 0 );
+        for ( let k = 1; k <= n; k++ ) {
+          const cur = pathPoint( sp, k / n );
+          const mid = pathPoint( sp, ( k - 0.5 ) / n );
           const nz = facing( mid.phi );
           const light = 0.6 + 0.55 * Math.max( 0, -nz );
           const sh = light * ( 0.7 + 0.55 * mid.ov ); // 아래로 눌린 부분일수록 어둡게
-          const piece = {
-            pts: pts.slice( k0, k1 + 1 ),
-            col: `rgb(${Math.min( 255, Math.round( rgb[ 0 ] * sh ) )},${Math.min( 255, Math.round( rgb[ 1 ] * sh ) )},${Math.min( 255, Math.round( rgb[ 2 ] * sh ) )})`,
-            edge: `rgb(${Math.round( rgb[ 0 ] * sh * 0.4 )},${Math.round( rgb[ 1 ] * sh * 0.4 )},${Math.round( rgb[ 2 ] * sh * 0.4 )})`,
+          const seg = {
+            p0: prev.p,
+            p1: cur.p,
+            fill: rgb.map( ( c ) => Math.min( 255, c * sh ) ),
+            edge: rgb.map( ( c ) => c * sh * 0.4 ),
             lw: ( thickness / 10 ) * GAP * sc * PERSP * ( 1 + 0.12 * mid.ov ),
-            // 겹치는 곳에서 더 바깥에 감긴 실이 확실히 위에 오도록, 표면 깊이에서 감김 정도만큼 앞으로 당겨 정렬
-            d: mid.db - mid.ov * GAP * 2,
+            // 겹치는 곳에서 더 바깥에 감긴 실이 확실히 위에 오도록, 표면 깊이에서 감김 정도만큼 앞으로 당긴 깊이 (조각 양 끝)
+            d0: prev.db - prev.ov * GAP * 2,
+            d1: cur.db - cur.ov * GAP * 2,
           };
           // 나를 향한 쪽의 실은 원통 앞에, 반대쪽 실은 원통 뒤에 그림
-          ( nz < 0 ? frontSegs : backSegs ).push( piece );
+          ( nz < 0 ? frontSegs : backSegs ).push( seg );
+          prev = cur;
         }
       }
     }
 
-    // painter's algorithm: 먼 것(큰 d)부터 그려야 가까운 것이 위에 표시됨
-    backSegs.sort( ( a, b ) => b.d - a.d );
-    frontSegs.sort( ( a, b ) => b.d - a.d );
-
-    // 어두운 테두리를 먼저 그리고 그 위에 실 색을 칠함. 위로 지나가는 실의 테두리가 아래 실을 가로질러
-    // 가리기 때문에 어느 실이 위인지 또렷하게 보임. 테두리 끝은 둥글리지 않아서(butt) 조각 이음매에 선이 생기지 않음
-    function drawPiece( { pts, col, edge, lw } ) {
-      bctx.beginPath();
-      pts.forEach( ( p, i ) => ( i ? bctx.lineTo( p.sx, p.sy ) : bctx.moveTo( p.sx, p.sy ) ) );
-      bctx.lineJoin = "round";
-      bctx.strokeStyle = edge;
-      bctx.lineWidth = lw + 2 * Math.max( 1, lw * 0.09 );
-      bctx.lineCap = "butt";
-      bctx.stroke();
-      bctx.strokeStyle = col;
-      bctx.lineWidth = lw;
-      bctx.lineCap = "round";
-      bctx.stroke();
-    }
-
-    backSegs.forEach( drawPiece );
+    backSegs.length && bctx.drawImage( rasterize( backSegs ), 0, 0 );
     drawCoreCylinder( CORE_R * 0.99, L );
-    frontSegs.forEach( drawPiece );
+    frontSegs.length && bctx.drawImage( rasterize( frontSegs ), 0, 0 );
+  }
+
+  // 실 조각들을 픽셀 단위 깊이 버퍼(z-buffer)로 그림. 픽셀마다 가장 앞에 있는 실만 남기므로
+  // 겹친 곳의 경계가 끊김 없이 갈리고, 위로 지나가는 실의 어두운 테두리가 아래 실을 또렷하게 가림.
+  // 실 가운데일수록 살짝 앞에 있는 것으로 쳐서 둥근 실처럼 겹치고, 가운데는 밝고 가장자리는 어둡게 칠함
+  const zCanvas = document.createElement( "canvas" );
+  zCanvas.width = BW;
+  zCanvas.height = BH;
+  const zctx = zCanvas.getContext( "2d" );
+  const zbuf = new Float32Array( BW * BH );
+
+  function rasterize( segs ) {
+    const img = zctx.createImageData( BW, BH );
+    const px = img.data;
+    zbuf.fill( Infinity );
+    const ROUND = GAP * 0.4; // 실 단면을 둥글게 칠 때 가운데와 가장자리의 깊이 차
+    for ( const g of segs ) {
+      const R = g.lw / 2,
+        RO = R + Math.max( 1, g.lw * 0.09 );
+      const ax = g.p0.sx,
+        ay = g.p0.sy,
+        dx = g.p1.sx - ax,
+        dy = g.p1.sy - ay;
+      const len2 = dx * dx + dy * dy || 1e-9,
+        len = Math.sqrt( len2 );
+      const xa = Math.max( 0, Math.floor( Math.min( ax, g.p1.sx ) - RO ) ),
+        xb = Math.min( BW - 1, Math.ceil( Math.max( ax, g.p1.sx ) + RO ) ),
+        ya = Math.max( 0, Math.floor( Math.min( ay, g.p1.sy ) - RO ) ),
+        yb = Math.min( BH - 1, Math.ceil( Math.max( ay, g.p1.sy ) + RO ) );
+      for ( let y = ya; y <= yb; y++ ) {
+        const cy = y + 0.5 - ay;
+        for ( let x = xa; x <= xb; x++ ) {
+          const cx = x + 0.5 - ax;
+          const t = Math.max( 0, Math.min( 1, ( cx * dx + cy * dy ) / len2 ) );
+          const ex = cx - t * dx,
+            ey = cy - t * dy;
+          if ( ex * ex + ey * ey > RO * RO ) continue;
+          // 둥글기·테두리는 조각 끝이 아니라 실 중심선까지의 거리로 정해서 조각 이음매가 보이지 않게 함
+          const side = Math.abs( cx * dy - cy * dx ) / len;
+          const q = side / R;
+          const z = g.d0 + ( g.d1 - g.d0 ) * t + ROUND * q * q;
+          const i = y * BW + x;
+          if ( z >= zbuf[ i ] ) continue;
+          zbuf[ i ] = z;
+          const o = i * 4;
+          if ( side > R ) {
+            px[ o ] = g.edge[ 0 ];
+            px[ o + 1 ] = g.edge[ 1 ];
+            px[ o + 2 ] = g.edge[ 2 ];
+          } else {
+            const f = 1.08 - 0.38 * q * q;
+            px[ o ] = g.fill[ 0 ] * f;
+            px[ o + 1 ] = g.fill[ 1 ] * f;
+            px[ o + 2 ] = g.fill[ 2 ] * f;
+          }
+          px[ o + 3 ] = 255;
+        }
+      }
+    }
+    zctx.putImageData( img, 0, 0 );
+    return zCanvas;
+  }
+
+  // 드래그·확대처럼 연달아 들어오는 입력은 화면 갱신 한 번에 한 번만 다시 그림
+  let drawPending = false;
+  function requestDraw() {
+    if ( drawPending ) return;
+    drawPending = true;
+    requestAnimationFrame( () => {
+      drawPending = false;
+      drawBraid();
+    } );
   }
 
   function resetView() {
@@ -946,7 +999,7 @@
     rotX = Math.max( -1.3, Math.min( 1.3, rotX ) );
     lx = e.clientX;
     ly = e.clientY;
-    drawBraid();
+    requestDraw();
   } );
   window.addEventListener( "mouseup", () => ( dragging = false ) );
   bc.addEventListener(
@@ -955,7 +1008,7 @@
       e.preventDefault();
       zoom *= e.deltaY > 0 ? 0.91 : 1.09;
       zoom = Math.max( 0.3, Math.min( 3.5, zoom ) );
-      drawBraid();
+      requestDraw();
     },
     { passive: false },
   );
@@ -989,14 +1042,14 @@
         zoom *= dist / pinchDist0;
         zoom = Math.max(0.3, Math.min(3.5, zoom));
         pinchDist0 = dist;
-        drawBraid();
+        requestDraw();
       } else if (e.touches.length === 1 && dragging) {
         rotY += (e.touches[0].clientX - lx) * 0.013;
         rotX += (e.touches[0].clientY - ly) * 0.013;
         rotX = Math.max(-1.3, Math.min(1.3, rotX));
         lx = e.touches[0].clientX;
         ly = e.touches[0].clientY;
-        drawBraid();
+        requestDraw();
       }
     },
     { passive: false },
